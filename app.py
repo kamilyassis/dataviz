@@ -14,7 +14,7 @@ st.markdown("---")
 # 2. Carregamento de Dados
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv('dados.csv', sep=',') # Ajuste o sep se precisar
+    df = pd.read_csv('data/dados.csv', sep=',') # Ajuste o sep se precisar
     df['geometry'] = df['mp_municipio'].apply(wkt.loads)
     gdf = gpd.GeoDataFrame(df, geometry='geometry')
     gdf.set_crs(epsg=4326, inplace=True)
