@@ -140,6 +140,7 @@ st.title("🫀 Estudo de Caso: Saúde Cardiovascular no Brasil (2025)")
 st.markdown("---")
 
 # ---------------- 4. MENU LATERAL (SIDEBAR) ----------------
+
 st.sidebar.header("🔧 Filtros do Dashboard")
 estado_options = ["Todos"] + sorted(gdf["uf"].dropna().unique().tolist())
 estado_sel = st.sidebar.selectbox("Estado", estado_options, key="estado_key")
@@ -158,6 +159,25 @@ if estado_sel != st.session_state.estado_anterior:
     st.session_state.estado_anterior = estado_sel
 
 gdf_filtrado, escala = aplicar_filtro(gdf, estado_sel, metrica, modo_analise)
+
+# Função para converter os dados filtrados para CSV 
+@st.cache_data
+def converter_para_csv(_df): # <-- Adicionamos o '_' aqui!
+    # Removemos a coluna de geometria para o Excel não ficar pesado
+    df_export = _df.drop(columns=['geometry'], errors='ignore') # <-- E aqui!
+    return df_export.to_csv(index=False, sep=';', decimal=',').encode('utf-8-sig')
+
+csv_export = converter_para_csv(gdf_filtrado)
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📥 Exportar Relatório")
+st.sidebar.download_button(
+    label="Baixar Dados Filtrados (CSV)",
+    data=csv_export,
+    file_name=f"relatorio_cardiovascular_{estado_sel}.csv",
+    mime="text/csv",
+    help="Descarregue os dados da seleção atual para abrir no Excel."
+)
 
 # ---------------- 5. ESTRUTURA DE ABAS ----------------
 aba_doc, aba_mapa, aba_rank = st.tabs(["📝 Relatório do Projeto", "🗺️ Mapa Interativo", "📊 Análise e Ranking"])
@@ -241,7 +261,7 @@ with aba_mapa:
             else:
                 st.warning("Município não encontrado")
         else:
-            st.info("👆 Clica numa cidade no ecrã do mapa para ver o detalhe de risco.")
+            st.info("👆 Clique em um município do mapa interativo ao lado ou selecione-o na caixa de busca acima para obter detalhes.")
 
 # ==========================================
 # ABA 3: RANKING E MATRIZ DE RISCO
