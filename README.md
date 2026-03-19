@@ -1,2 +1,8 @@
 # dataviz
-repo dedicado a Visualização de Dados
+
+Repositório dedicado à Visualização de Dados
+
+## Autores
+- Jessica Nagahama
+- Kamily Assis
+
