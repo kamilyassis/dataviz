@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: transparent; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
+  body { background: #e8e4dc; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
   #map { width: 100%; height: 100vh; }
 
   #tooltip {
     position: fixed;
     pointer-events: none;
-    background: rgba(12, 12, 18, 0.92);
-    color: #f0ede8;
+    background: rgba(255, 252, 248, 0.96);
+    color: #1a1a2e;
     padding: 10px 14px;
     border-radius: 8px;
     font-size: 12.5px;
@@ -19,18 +19,20 @@
     display: none;
     z-index: 999;
     max-width: 210px;
-    border: 0.5px solid rgba(255,255,255,0.1);
+    border: 0.5px solid rgba(0,0,0,0.1);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
   }
-  #tooltip strong { display: block; font-size: 13.5px; color: #FFD166; margin-bottom: 5px; font-weight: 600; }
+  #tooltip strong { display: block; font-size: 13.5px; color: #c0392b; margin-bottom: 5px; font-weight: 600; }
   #tooltip .row { display: flex; justify-content: space-between; gap: 12px; }
-  #tooltip .lbl { color: rgba(240,237,232,0.55); font-size: 11.5px; }
-  #tooltip .val { font-weight: 500; font-size: 12px; }
+  #tooltip .lbl { color: rgba(26,26,46,0.5); font-size: 11.5px; }
+  #tooltip .val { font-weight: 500; font-size: 12px; color: #1a1a2e; }
 
   #click-ripple {
     position: fixed;
     width: 32px; height: 32px;
     border-radius: 50%;
-    border: 2px solid #FFD166;
+    border: 2px solid #c0392b;
     pointer-events: none;
     display: none;
     z-index: 998;
@@ -49,11 +51,11 @@
 
 <script src="https://unpkg.com/deck.gl@8.9.35/dist.min.js"></script>
 <script>
-const { DeckGL, GeoJsonLayer, MapView, FlyToInterpolator } = deck;
+const { DeckGL, GeoJsonLayer, TileLayer, BitmapLayer, MapView, FlyToInterpolator } = deck;
 
 const BRASIL_BOUNDS = [
-  [-73.9904, -33.7517],   // [lon_min, lat_min] — sudoeste
-  [-28.8474,   5.2717],   // [lon_max, lat_max] — nordeste
+  [-73.9904, -33.7517],
+  [-28.8474,   5.2717],
 ];
 
 const MIN_ZOOM = 3.6;
@@ -61,21 +63,9 @@ const MAX_ZOOM = 9.5;
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-function clampViewState(vs) {
-  return {
-    ...vs,
-    longitude: clamp(vs.longitude, BRASIL_BOUNDS[0][0], BRASIL_BOUNDS[1][0]),
-    latitude:  clamp(vs.latitude,  BRASIL_BOUNDS[0][1], BRASIL_BOUNDS[1][1]),
-    zoom:      clamp(vs.zoom ?? 4, MIN_ZOOM, MAX_ZOOM),
-    pitch:     clamp(vs.pitch ?? 0, 0, 45),
-    bearing:   0
-  };
-}
-
 const tooltipEl = document.getElementById('tooltip');
 const rippleEl  = document.getElementById('click-ripple');
 
-// ── Utilidades 
 function fmt(v) {
   return (v == null) ? '—' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 }
@@ -104,18 +94,43 @@ function calcViewFromGeometry(coords) {
   };
 }
 
+// Carto Voyager — tema claro com cores naturais e estradas visíveis
+function buildBasemapLayer() {
+  return new TileLayer({
+    id: 'basemap',
+    data: 'https://basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
+    minZoom: 0,
+    maxZoom: 19,
+    tileSize: 256,
+    renderSubLayers: props => {
+      const { bbox: { west, south, east, north } } = props.tile;
+      return new BitmapLayer(props, {
+        data: null,
+        image: props.data,
+        bounds: [west, south, east, north],
+      });
+    },
+  });
+}
+
 function buildMunicipiosLayer(geojson) {
   return new GeoJsonLayer({
     id: 'municipios',
     data: geojson,
     extruded: true,
     getElevation:      f => f.properties.elevation,
-    getFillColor:      f => [f.properties.cor_r, f.properties.cor_g, f.properties.cor_b, f.properties.alpha],
-    getLineColor:      [255, 255, 255, 45],
-    lineWidthMinPixels: 0.5,
+    getFillColor:      f => [f.properties.cor_r, f.properties.cor_g, f.properties.cor_b, Math.round(f.properties.alpha * 0.82)],
+    getLineColor:      [255, 255, 255, 60],
+    lineWidthMinPixels: 0.4,
     stroked: true, pickable: true, autoHighlight: true,
-    highlightColor: [255, 210, 0, 130],
+    highlightColor: [220, 60, 20, 140],
     updateTriggers: { getFillColor: geojson, getElevation: geojson },
+    material: {
+      ambient: 0.45,
+      diffuse: 0.65,
+      shininess: 28,
+      specularColor: [200, 190, 180]
+    },
 
     onHover: ({ object, x, y }) => {
       if (!object) { tooltipEl.style.display = 'none'; return; }
@@ -143,17 +158,6 @@ function buildMunicipiosLayer(geojson) {
   });
 }
 
-function buildBordersLayer() {
-  return new GeoJsonLayer({
-    id: 'borders',
-    data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson',
-    stroked: true, filled: false, extruded: false,
-    getLineColor: [30, 30, 30, 220],
-    lineWidthMinPixels: 1.2, lineWidthMaxPixels: 2.5,
-    pickable: false,
-  });
-}
-
 window.addEventListener('message', function(event) {
   if (!event.data.args) return;
   const { geojson, viewState, selectedMunicipio } = event.data.args;
@@ -172,8 +176,8 @@ window.addEventListener('message', function(event) {
           maxBounds: BRASIL_BOUNDS,
         }
       })],
-      parameters: { clearColor: [0.87, 0.87, 0.87, 0] },
-      layers: [buildMunicipiosLayer(geojson), buildBordersLayer()],
+      parameters: { clearColor: [0.91, 0.89, 0.86, 1] },
+      layers: [buildBasemapLayer(), buildMunicipiosLayer(geojson)],
     });
     window._lastGeojson = geojson;
     window._lastSelected = selectedMunicipio;
@@ -185,7 +189,7 @@ window.addEventListener('message', function(event) {
   window._lastGeojson   = geojson;
   window._lastSelected  = selectedMunicipio;
 
-  if (geojsonChanged)  window._deck.setProps({ layers: [buildMunicipiosLayer(geojson), buildBordersLayer()] });
+  if (geojsonChanged)  window._deck.setProps({ layers: [buildBasemapLayer(), buildMunicipiosLayer(geojson)] });
   if (selectedChanged && viewState) flyTo(viewState);
 });
 

@@ -47,7 +47,7 @@ def main():
     st.markdown("---")
 
     aba_doc, aba_mapa, aba_rank = st.tabs(
-        ["📝  Relatório", "🗺️  Mapa Interativo", "📊  Análise & Ranking"]
+        ["📝 Sobre", "🗺️ Mapa Interativo", "📊 Análise"]
     )
 
     with aba_doc:
