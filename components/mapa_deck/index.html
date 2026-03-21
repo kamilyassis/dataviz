@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #EDE9E1; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
+  body { background: transparent; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
   #map { width: 100%; height: 100vh; }
 
   #tooltip {
@@ -51,9 +51,6 @@
 <script>
 const { DeckGL, GeoJsonLayer, MapView, FlyToInterpolator } = deck;
 
-// Limites do território brasileiro conforme IBGE/SIRGAS2000 (incluindo ilhas oceânicas)
-// Norte: Uiramutã/RR    +5.2717°  |  Sul:   Chuí/RS          -33.7517°
-// Oeste: Mâncio Lima/AC -73.9904° |  Leste: Ilha de Trindade  -28.8474°
 const BRASIL_BOUNDS = [
   [-73.9904, -33.7517],   // [lon_min, lat_min] — sudoeste
   [-28.8474,   5.2717],   // [lon_max, lat_max] — nordeste
@@ -78,7 +75,7 @@ function clampViewState(vs) {
 const tooltipEl = document.getElementById('tooltip');
 const rippleEl  = document.getElementById('click-ripple');
 
-// ── Utilidades ────────────────────────────────────────────────────────────────
+// ── Utilidades 
 function fmt(v) {
   return (v == null) ? '—' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 }
@@ -107,7 +104,6 @@ function calcViewFromGeometry(coords) {
   };
 }
 
-// ── Layers ────────────────────────────────────────────────────────────────────
 function buildMunicipiosLayer(geojson) {
   return new GeoJsonLayer({
     id: 'municipios',
@@ -158,7 +154,6 @@ function buildBordersLayer() {
   });
 }
 
-// ── Recebe mensagens do Python ────────────────────────────────────────────────
 window.addEventListener('message', function(event) {
   if (!event.data.args) return;
   const { geojson, viewState, selectedMunicipio } = event.data.args;
@@ -166,7 +161,6 @@ window.addEventListener('message', function(event) {
   if (!window._deck) {
     window._deck = new DeckGL({
       container: 'map',
-      mapStyle: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       initialViewState: {
         longitude: viewState.longitude, latitude: viewState.latitude,
         zoom: viewState.zoom, pitch: viewState.pitch ?? 45, bearing: viewState.bearing ?? -10,
@@ -178,7 +172,7 @@ window.addEventListener('message', function(event) {
           maxBounds: BRASIL_BOUNDS,
         }
       })],
-      parameters: { clearColor: [0.93, 0.91, 0.89, 1] },
+      parameters: { clearColor: [0.87, 0.87, 0.87, 0] },
       layers: [buildMunicipiosLayer(geojson), buildBordersLayer()],
     });
     window._lastGeojson = geojson;

@@ -57,7 +57,7 @@ pip install streamlit geopandas pandas shapely plotly requests
 
 **2. Execute a aplicação:**
 ```bash
-python -m streamlit run app_test.py
+python -m streamlit run app[desejado].py
 ```
 
 ---

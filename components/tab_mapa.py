@@ -8,26 +8,22 @@ from utils.map_utils import aplicar_filtro, preparar_geojson, calcular_view
 _MAPA_DIR = os.path.join(os.path.dirname(__file__), "mapa_deck")
 _mapa_deck = components.declare_component("mapa_deck", path=_MAPA_DIR)
 
-# Métrica → coluna de cor/elevação do mapa
+_METRICAS = ["Internações", "Ambulatórios", "Ambos"]
+_MODOS    = ["Números Absolutos", "Taxa / 100k hab.", "Ambos"]
+
 _COLUNAS = {
-    ("Internações",  "taxa"):     "taxa_internacoes",
-    ("Internações",  "absoluto"): "nu_ocorrencias_internacoes",
-    ("Ambulatórios", "taxa"):     "taxa_ambulatorio",
-    ("Ambulatórios", "absoluto"): "nu_ocorrencias_ambulatorio",
-    ("Ambos",        "taxa"):     "valor",
-    ("Ambos",        "absoluto"): "valor",
+    ("Internações",  "Taxa / 100k hab."):    "taxa_internacoes",
+    ("Internações",  "Números Absolutos"):   "nu_ocorrencias_internacoes",
+    ("Internações",  "Ambos"):               "taxa_internacoes",
+    ("Ambulatórios", "Taxa / 100k hab."):    "taxa_ambulatorio",
+    ("Ambulatórios", "Números Absolutos"):   "nu_ocorrencias_ambulatorio",
+    ("Ambulatórios", "Ambos"):               "taxa_ambulatorio",
+    ("Ambos",        "Taxa / 100k hab."):    "valor",
+    ("Ambos",        "Números Absolutos"):   "valor",
+    ("Ambos",        "Ambos"):               "valor",
 }
 
-_METRICAS   = ["Internações", "Ambulatórios", "Ambos"]
-_MODOS      = ["Taxa / 100k hab.", "Ambos", "Números Absolutos"]
 
-
-def _coluna_mapa(metrica, modo):
-    chave = "taxa" if modo == "Taxa / 100k hab." else ("absoluto" if modo == "Números Absolutos" else "taxa")
-    return _COLUNAS[(metrica, chave)]
-
-
-# ── Coluna de filtros ─────────────────────────────────────────────────────────
 def _render_coluna_filtros(gdf_filtrado):
     col_titulo, col_fechar = st.columns([3, 1])
     col_titulo.markdown("#### 🔧 Filtros")
@@ -35,27 +31,20 @@ def _render_coluna_filtros(gdf_filtrado):
         st.session_state.mostrar_filtros = False
         st.rerun()
 
-    def _on_metrica_change():
-        st.session_state.metrica = st.session_state._filtro_metrica
-
-    def _on_modo_change():
-        st.session_state.modo_analise = st.session_state._filtro_modo
-
     st.radio(
         "Métrica",
         _METRICAS,
         index=_METRICAS.index(st.session_state.metrica),
         key="_filtro_metrica",
-        on_change=_on_metrica_change,
+        on_change=lambda: setattr(st.session_state, "metrica", st.session_state._filtro_metrica),
     )
     st.markdown("---")
     st.radio(
         "Modo de Visualização",
         _MODOS,
         index=_MODOS.index(st.session_state.modo_analise),
-        help="'Ambos' exibe taxa e valor absoluto lado a lado nos detalhes.",
         key="_filtro_modo",
-        on_change=_on_modo_change,
+        on_change=lambda: setattr(st.session_state, "modo_analise", st.session_state._filtro_modo),
     )
     st.markdown("---")
     st.download_button(
@@ -67,7 +56,6 @@ def _render_coluna_filtros(gdf_filtrado):
     )
 
 
-# ── Coluna de detalhes locais ─────────────────────────────────────────────────
 def _render_detalhes_locais(gdf_filtrado):
     st.markdown("#### 📍 Detalhes Locais")
 
@@ -86,14 +74,14 @@ def _render_detalhes_locais(gdf_filtrado):
         return
 
     d    = dados_mun.iloc[0]
-    modo = st.session_state.modo_analise  # "Taxa / 100k hab." | "Ambos" | "Números Absolutos"
+    modo = st.session_state.modo_analise
 
     st.markdown(f"**🏙️ {st.session_state.municipio_selecionado}**")
     st.caption(f"👥 Pop.: {d['populacao']:,.0f}".replace(',', '.'))
     st.markdown("---")
 
-    def _bloco(label_emoji, label, taxa, absoluto):
-        st.markdown(f"**{label_emoji} {label}**")
+    def _bloco(emoji, label, taxa, absoluto):
+        st.markdown(f"**{emoji} {label}**")
         if modo == "Taxa / 100k hab.":
             st.metric("Taxa / 100k", f"{taxa:,.1f}".replace(',', '.'))
             st.caption(f"Absoluto: {absoluto:,.0f}".replace(',', '.'))
@@ -108,10 +96,8 @@ def _render_detalhes_locais(gdf_filtrado):
     metrica = st.session_state.metrica
     if metrica in ("Internações", "Ambos"):
         _bloco("🏥", "Internações", d["taxa_internacoes"], d["nu_ocorrencias_internacoes"])
-
     if metrica == "Ambos":
         st.markdown("---")
-
     if metrica in ("Ambulatórios", "Ambos"):
         _bloco("🩺", "Ambulatórios", d["taxa_ambulatorio"], d["nu_ocorrencias_ambulatorio"])
 
@@ -122,22 +108,11 @@ def _render_detalhes_locais(gdf_filtrado):
             st.rerun()
 
 
-# ── Função principal ──────────────────────────────────────────────────────────
 def render_aba_mapa(gdf):
     st.session_state.setdefault("mostrar_filtros", False)
 
-    # gdf_filtrado calculado com estado atual do session_state
-    gdf_filtrado, _ = aplicar_filtro(
-        gdf,
-        "Todos",                          # filtro por estado removido
-        st.session_state.metrica,
-        # aplicar_filtro ainda espera o formato antigo internamente
-        "Taxa por 100 mil hab. (Recomendado)"
-        if st.session_state.modo_analise in ("Taxa / 100k hab.", "Ambos")
-        else "Números Absolutos",
-    )
+    gdf_filtrado = aplicar_filtro(gdf, st.session_state.metrica, st.session_state.modo_analise)
 
-    # ── Cabeçalho compacto ──
     st.caption("🗓️ Período de coleta: janeiro a agosto de 2025")
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     col_m1.metric("Municípios",      len(gdf_filtrado))
@@ -146,14 +121,12 @@ def render_aba_mapa(gdf):
     col_m4.metric("População Total", f"{gdf_filtrado['populacao'].sum():,.0f}".replace(',', '.'))
     st.markdown("---")
 
-    # ── Busca de município (compacta) ──
     municipio_options = ["Todos"] + sorted(gdf_filtrado["no_municipio"].dropna().unique().tolist())
     if st.session_state.municipio_selecionado not in municipio_options:
         st.session_state.municipio_selecionado = "Todos"
 
     municipio_sel = st.selectbox(
-        "🔍 Buscar município",
-        municipio_options,
+        "município", municipio_options,
         index=municipio_options.index(st.session_state.municipio_selecionado),
         label_visibility="collapsed",
         placeholder="🔍 Buscar município...",
@@ -162,7 +135,6 @@ def render_aba_mapa(gdf):
         st.session_state.municipio_selecionado = municipio_sel
         st.rerun()
 
-    # ── Layout dinâmico ──
     if st.session_state.mostrar_filtros:
         col_mapa, col_info, col_filtros = st.columns([2.5, 1, 1])
     else:
@@ -170,17 +142,14 @@ def render_aba_mapa(gdf):
         col_filtros = None
 
     with col_mapa:
-        mun_destaque = (
-            None if st.session_state.municipio_selecionado == "Todos"
-            else st.session_state.municipio_selecionado
-        )
-        coluna = _coluna_mapa(st.session_state.metrica, st.session_state.modo_analise)
+        mun_destaque = None if st.session_state.municipio_selecionado == "Todos" else st.session_state.municipio_selecionado
+        coluna = _COLUNAS[(st.session_state.metrica, st.session_state.modo_analise)]
 
         municipio_clicado = _mapa_deck(
             geojson=preparar_geojson(gdf_filtrado, coluna, mun_destaque),
             viewState=calcular_view(gdf_filtrado, mun_destaque),
             selectedMunicipio=mun_destaque,
-            height=480,   # reduzido para caber bem em 750px de altura
+            height=480,
             default=None,
             key="mapa_deck_widget",
         )

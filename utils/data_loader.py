@@ -4,7 +4,6 @@ from shapely import wkt
 import requests
 import streamlit as st
 
-
 @st.cache_data(show_spinner="A extrair dados populacionais da API do IBGE...")
 def obter_populacao_ibge():
     url = "https://servicodados.ibge.gov.br/api/v3/agregados/4709/periodos/2022/variaveis/93?localidades=N6[all]"
