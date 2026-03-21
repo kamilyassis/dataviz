@@ -28,7 +28,7 @@ def obter_populacao_ibge():
 
 @st.cache_data
 def carregar_dados():
-    df = pd.read_csv('dataset.csv', sep=',')
+    df = pd.read_csv('data/dataset.csv', sep=',')
     df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
 
     df["co_ibge"] = df["co_ibge"].astype(int)

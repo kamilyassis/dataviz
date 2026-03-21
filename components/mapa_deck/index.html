@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #EDE9E1; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
+  #map { width: 100%; height: 100vh; }
+
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(12, 12, 18, 0.92);
+    color: #f0ede8;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    display: none;
+    z-index: 999;
+    max-width: 210px;
+    border: 0.5px solid rgba(255,255,255,0.1);
+  }
+  #tooltip strong { display: block; font-size: 13.5px; color: #FFD166; margin-bottom: 5px; font-weight: 600; }
+  #tooltip .row { display: flex; justify-content: space-between; gap: 12px; }
+  #tooltip .lbl { color: rgba(240,237,232,0.55); font-size: 11.5px; }
+  #tooltip .val { font-weight: 500; font-size: 12px; }
+
+  #click-ripple {
+    position: fixed;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid #FFD166;
+    pointer-events: none;
+    display: none;
+    z-index: 998;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  @keyframes ripple {
+    0%   { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="tooltip"></div>
+<div id="click-ripple"></div>
+
+<script src="https://unpkg.com/deck.gl@8.9.35/dist.min.js"></script>
+<script>
+const { DeckGL, GeoJsonLayer, MapView, FlyToInterpolator } = deck;
+
+// Limites do território brasileiro conforme IBGE/SIRGAS2000 (incluindo ilhas oceânicas)
+// Norte: Uiramutã/RR    +5.2717°  |  Sul:   Chuí/RS          -33.7517°
+// Oeste: Mâncio Lima/AC -73.9904° |  Leste: Ilha de Trindade  -28.8474°
+const BRASIL_BOUNDS = [
+  [-73.9904, -33.7517],   // [lon_min, lat_min] — sudoeste
+  [-28.8474,   5.2717],   // [lon_max, lat_max] — nordeste
+];
+
+const MIN_ZOOM = 3.6;
+const MAX_ZOOM = 9.5;
+
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+function clampViewState(vs) {
+  return {
+    ...vs,
+    longitude: clamp(vs.longitude, BRASIL_BOUNDS[0][0], BRASIL_BOUNDS[1][0]),
+    latitude:  clamp(vs.latitude,  BRASIL_BOUNDS[0][1], BRASIL_BOUNDS[1][1]),
+    zoom:      clamp(vs.zoom ?? 4, MIN_ZOOM, MAX_ZOOM),
+    pitch:     clamp(vs.pitch ?? 0, 0, 45),
+    bearing:   0
+  };
+}
+
+const tooltipEl = document.getElementById('tooltip');
+const rippleEl  = document.getElementById('click-ripple');
+
+// ── Utilidades ────────────────────────────────────────────────────────────────
+function fmt(v) {
+  return (v == null) ? '—' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+}
+
+function flyTo(vs) {
+  window._deck.setProps({
+    initialViewState: {
+      longitude: vs.longitude, latitude: vs.latitude,
+      zoom: vs.zoom, pitch: vs.pitch ?? 45, bearing: vs.bearing ?? -10,
+      transitionDuration: 1100,
+      transitionInterpolator: new FlyToInterpolator({ speed: 1.4 }),
+    }
+  });
+}
+
+function calcViewFromGeometry(coords) {
+  const flat = coords.flat(Infinity);
+  const lons = flat.filter((_, i) => i % 2 === 0);
+  const lats = flat.filter((_, i) => i % 2 === 1);
+  const delta = Math.max(Math.max(...lons) - Math.min(...lons), Math.max(...lats) - Math.min(...lats)) * 1.25;
+  return {
+    longitude: (Math.min(...lons) + Math.max(...lons)) / 2,
+    latitude:  (Math.min(...lats) + Math.max(...lats)) / 2,
+    zoom: Math.min(Math.max(Math.log2(8 / delta) + 4, 5.5), 11),
+    pitch: 45, bearing: -10,
+  };
+}
+
+// ── Layers ────────────────────────────────────────────────────────────────────
+function buildMunicipiosLayer(geojson) {
+  return new GeoJsonLayer({
+    id: 'municipios',
+    data: geojson,
+    extruded: true,
+    getElevation:      f => f.properties.elevation,
+    getFillColor:      f => [f.properties.cor_r, f.properties.cor_g, f.properties.cor_b, f.properties.alpha],
+    getLineColor:      [255, 255, 255, 45],
+    lineWidthMinPixels: 0.5,
+    stroked: true, pickable: true, autoHighlight: true,
+    highlightColor: [255, 210, 0, 130],
+    updateTriggers: { getFillColor: geojson, getElevation: geojson },
+
+    onHover: ({ object, x, y }) => {
+      if (!object) { tooltipEl.style.display = 'none'; return; }
+      const p = object.properties;
+      tooltipEl.style.display = 'block';
+      tooltipEl.style.left = (x + 16) + 'px';
+      tooltipEl.style.top  = Math.max(8, y - 16) + 'px';
+      tooltipEl.innerHTML = `
+        <strong>${p.no_municipio}</strong>
+        <div class="row"><span class="lbl">Internações</span><span class="val">${fmt(p.nu_ocorrencias_internacoes)}</span></div>
+        <div class="row"><span class="lbl">Taxa/100k</span><span class="val">${fmt(p.taxa_internacoes)}</span></div>
+        <div class="row"><span class="lbl">Ambulatórios</span><span class="val">${fmt(p.nu_ocorrencias_ambulatorio)}</span></div>
+        <div class="row"><span class="lbl">População</span><span class="val">${fmt(p.populacao)}</span></div>`;
+    },
+
+    onClick: ({ object, x, y }) => {
+      if (!object) return;
+      rippleEl.style.left = x + 'px'; rippleEl.style.top = y + 'px';
+      rippleEl.style.display = 'block'; rippleEl.style.animation = 'none';
+      void rippleEl.offsetWidth;
+      rippleEl.style.animation = 'ripple 0.5s ease-out forwards';
+      flyTo(calcViewFromGeometry(object.geometry.coordinates));
+      window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: object.properties.no_municipio }, '*');
+    },
+  });
+}
+
+function buildBordersLayer() {
+  return new GeoJsonLayer({
+    id: 'borders',
+    data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson',
+    stroked: true, filled: false, extruded: false,
+    getLineColor: [30, 30, 30, 220],
+    lineWidthMinPixels: 1.2, lineWidthMaxPixels: 2.5,
+    pickable: false,
+  });
+}
+
+// ── Recebe mensagens do Python ────────────────────────────────────────────────
+window.addEventListener('message', function(event) {
+  if (!event.data.args) return;
+  const { geojson, viewState, selectedMunicipio } = event.data.args;
+
+  if (!window._deck) {
+    window._deck = new DeckGL({
+      container: 'map',
+      mapStyle: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      initialViewState: {
+        longitude: viewState.longitude, latitude: viewState.latitude,
+        zoom: viewState.zoom, pitch: viewState.pitch ?? 45, bearing: viewState.bearing ?? -10,
+      },
+      views: [new MapView({
+        controller: {
+          scrollZoom: true, dragPan: true, dragRotate: true,
+          maxPitch: 60, minZoom: 3.2, maxZoom: 12,
+          maxBounds: BRASIL_BOUNDS,
+        }
+      })],
+      parameters: { clearColor: [0.93, 0.91, 0.89, 1] },
+      layers: [buildMunicipiosLayer(geojson), buildBordersLayer()],
+    });
+    window._lastGeojson = geojson;
+    window._lastSelected = selectedMunicipio;
+    return;
+  }
+
+  const geojsonChanged  = JSON.stringify(geojson) !== JSON.stringify(window._lastGeojson);
+  const selectedChanged = selectedMunicipio !== window._lastSelected;
+  window._lastGeojson   = geojson;
+  window._lastSelected  = selectedMunicipio;
+
+  if (geojsonChanged)  window._deck.setProps({ layers: [buildMunicipiosLayer(geojson), buildBordersLayer()] });
+  if (selectedChanged && viewState) flyTo(viewState);
+});
+
+window.parent.postMessage({ isStreamlitMessage: true, type: 'streamlit:componentReady', apiVersion: 1 }, '*');
+</script>
+</body>
+</html>
