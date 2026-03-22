@@ -118,7 +118,7 @@ def render_aba_mapa(gdf):
     col_m1.metric("Municípios",      len(gdf_filtrado))
     col_m2.metric("Internações",     f"{gdf_filtrado['nu_ocorrencias_internacoes'].sum():,.0f}".replace(',', '.'))
     col_m3.metric("Ambulatórios",    f"{gdf_filtrado['nu_ocorrencias_ambulatorio'].sum():,.0f}".replace(',', '.'))
-    col_m4.metric("População Total", f"{gdf_filtrado['populacao'].sum():,.0f}".replace(',', '.'))
+    col_m4.metric("População", f"{gdf_filtrado['populacao'].sum():,.0f}".replace(',', '.'))
     st.markdown("---")
 
     municipio_options = ["Todos"] + sorted(gdf_filtrado["no_municipio"].dropna().unique().tolist())

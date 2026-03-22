@@ -371,5 +371,198 @@ def inject_css():
     [data-testid="stVerticalBlock"] [data-testid="stVerticalBlock"] {
         background: transparent !important;
     }
+
+    /* ── Aumento global de fonte (+150%) ──────────────────────────────────── */
+    p, li {
+        font-size: 1.35rem !important;
+        line-height: 1.7 !important;
+    }
+    [data-testid="stCaptionContainer"] p {
+        font-size: 1.05rem !important;
+    }
+    [data-testid="stMetricLabel"] > div {
+        font-size: 1.0rem !important;
+    }
+    [data-testid="stMetricValue"] > div {
+        font-size: 2.0rem !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 1.1rem !important;
+    }
+    [data-baseweb="select"] > div {
+        font-size: 1.1rem !important;
+    }
+    [role="option"] {
+        font-size: 1.1rem !important;
+    }
+    .stButton > button {
+        font-size: 1.1rem !important;
+    }
+    [data-testid="stDownloadButton"] > button {
+        font-size: 1.1rem !important;
+    }
+
+    /* ── Aba Doc — Hero ───────────────────────────────────────────────────── */
+    .doc-hero {
+        background: linear-gradient(135deg, #1a1a1c 0%, #1e1212 60%, #2a1010 100%);
+        border: 1px solid #3a2020;
+        border-radius: 16px;
+        padding: 2.8rem 2.4rem 2.4rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .doc-hero-glow {
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 220px; height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(248,113,113,0.10) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .doc-hero-badge {
+        display: inline-block;
+        background: rgba(248,113,113,0.12);
+        color: #F87171;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.28rem 0.85rem;
+        border-radius: 99px;
+        border: 1px solid rgba(248,113,113,0.25);
+        margin-bottom: 1.2rem;
+    }
+    .doc-hero-title {
+        font-family: 'DM Serif Display', serif;
+        font-size: 2rem;
+        font-weight: 400;
+        color: #EEECEA;
+        line-height: 1.25;
+        margin: 0 0 0.6rem 0;
+        letter-spacing: -0.01em;
+    }
+    .doc-hero-lead {
+        font-size: 1.1rem;
+        color: #a09890;
+        line-height: 1.6;
+        margin: 0 0 2rem 0;
+        max-width: 620px;
+    }
+    .doc-hero-lead strong.hl-white { color: #EEECEA; }
+    .doc-hero-lead strong.hl-red   { color: #F87171; }
+    .doc-kpis {
+        display: flex;
+        gap: 1.2rem;
+        flex-wrap: wrap;
+    }
+    .doc-kpi {
+        background: rgba(248,113,113,0.08);
+        border: 1px solid rgba(248,113,113,0.2);
+        border-radius: 12px;
+        padding: 1rem 1.4rem;
+        min-width: 150px;
+    }
+    .doc-kpi-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #F87171;
+        margin-bottom: 0.3rem;
+    }
+    .doc-kpi-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #EEECEA;
+        letter-spacing: -0.03em;
+    }
+
+    /* ── Aba Doc — Perguntas (expander accordion) ─────────────────────────── */
+    .doc-section-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #7A7875;
+        margin-bottom: 0.2rem;
+    }
+    .doc-section-title {
+        font-family: 'DM Serif Display', serif;
+        font-size: 1.45rem;
+        font-weight: 400;
+        color: #EEECEA;
+        margin: 0 0 1.2rem 0;
+    }
+    [data-testid="stExpander"] {
+        background: #1A1A1C !important;
+        border: 1px solid #2E2E33 !important;
+        border-radius: 12px !important;
+        margin-bottom: 0.7rem !important;
+        overflow: hidden !important;
+    }
+    [data-testid="stExpander"]:has(details[open]) {
+        border-color: rgba(248,113,113,0.35) !important;
+        background: rgba(248,113,113,0.04) !important;
+    }
+    [data-testid="stExpander"] summary {
+        padding: 1rem 1.4rem !important;
+        cursor: pointer !important;
+        font-size: 1.0rem !important;
+        font-weight: 500 !important;
+        color: #EEECEA !important;
+    }
+    [data-testid="stExpander"] summary:hover {
+        color: #F87171 !important;
+    }
+    [data-testid="stExpander"] summary svg {
+        color: #7A7875 !important;
+    }
+    [data-testid="stExpander"] [data-testid="stExpanderDetails"] {
+        padding: 0 1.4rem 1.2rem !important;
+        border-top: 1px solid rgba(248,113,113,0.15) !important;
+    }
+    .doc-answer {
+        font-size: 0.97rem;
+        color: #a09890;
+        line-height: 1.75;
+        margin: 0.6rem 0 0 0;
+    }
+
+    /* ── Aba Doc — Cards de seção ─────────────────────────────────────────── */
+    .doc-card {
+        background: #1A1A1C;
+        border: 1px solid #2E2E33;
+        border-radius: 12px;
+        padding: 1.4rem 1.6rem;
+        margin-bottom: 1rem;
+        font-size: 0.97rem;
+        color: #a09890;
+        line-height: 1.7;
+    }
+    .doc-card.accent-green {
+        border-color: rgba(74,222,128,0.2);
+    }
+    .doc-card-label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: #7A7875;
+        margin-bottom: 0.6rem;
+    }
+    .doc-card-label.green { color: #4ADE80; }
+    .doc-card ul {
+        padding-left: 1.1rem;
+        margin: 0;
+    }
+    .doc-card li {
+        font-size: 0.97rem !important;
+        color: #a09890 !important;
+        line-height: 1.7 !important;
+        margin-bottom: 0.55rem;
+    }
+    .hl-white { color: #EEECEA; }
+    .hl-green { color: #4ADE80; }
     </style>
     """, unsafe_allow_html=True)
