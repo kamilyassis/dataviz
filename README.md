@@ -60,6 +60,9 @@ pip install streamlit geopandas pandas shapely plotly requests
 python -m streamlit run app[desejado].py
 ```
 
+**3. Ou acesse a aplicação agora mesmo:**
+ [Nosso projetinho massa <3](https://jandk-dataviz-ecvd.streamlit.app/) 
+
 ---
 
 ## 👥 Autores
