@@ -51,7 +51,7 @@ def main():
     )
 
     with aba_doc:
-        render_aba_doc()
+        render_aba_doc(gdf)
 
     with aba_mapa:
         render_aba_mapa(gdf)
