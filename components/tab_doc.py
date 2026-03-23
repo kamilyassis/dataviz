@@ -7,14 +7,13 @@ def render_aba_doc(gdf=None):
 
     if gdf is not None:
         total_casos     = int(
-            gdf["nu_ocorrencias_internacoes"].sum() +
-            gdf["nu_ocorrencias_ambulatorio"].sum()
+            gdf["nu_ocorrencias_internacoes"].sum()
         )
         total_mun       = int(gdf["no_municipio"].nunique())
         internacoes_dia = round(gdf["nu_ocorrencias_internacoes"].sum() / 243)
 
     casos_fmt = f"{total_casos:,}".replace(",", ".")
-    mpd_fmt   = f"{internacoes_dia:,.1f}".replace(",", ".")
+    mpd_fmt   = f"{internacoes_dia:,.0f}".replace(",", ".")
     mun_fmt   = str(total_mun)
 
     # Hero
