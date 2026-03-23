@@ -15,7 +15,7 @@ def inject_css():
         --border:       #2E2E33;
         --border-light: #3A3A40;
         --text:         #EEECEA;
-        --text-muted:   #7A7875;
+        --text-muted:   #EEECEA;
         --text-dim:     #4A4845;
         --accent:       #4ADE80;       /* verde-esmeralda vibrante */
         --accent-dim:   #166534;       /* verde escuro p/ fundos */
