@@ -123,9 +123,9 @@ def render_aba_rank(gdf_filtrado, modo_analise):
 
     # Top 10 Urgência / 100k
     st.markdown("---")
-    st.markdown("### 🚨 Muita Demanda, Pouca Disponibilidade!")
+    st.markdown("### 🚨 Municípios com Alto Índice Relativo!")
     st.caption(
-        "Proporção de internações sobre atendimentos ambulatoriais por 100k habitantes "
+        "Indicador de gravidade relativa de internações sobre atendimentos ambulatoriais por 100k habitantes "
         "Municípios com alto índice concentram casos graves com baixa prevenção prévia."
     )
 
@@ -149,15 +149,15 @@ def render_aba_rank(gdf_filtrado, modo_analise):
         marker=dict(
             color=top_urg_sorted["indice_urgencia"],
             colorscale="Oranges",
-            showscale=True,
+            showscale=False,
             colorbar=dict(title="Índice"),
         ),
         customdata=top_urg_sorted[["taxa_internacoes", "taxa_ambulatorio", "populacao"]].values,
         hovertemplate=(
             "<b>%{y}</b><br>"
-            "Índice de Urgência: %{x:,d}<br>"
-            "%{customdata[0]:,d}<br>"
-            "%{customdata[1]:,d}<br>"
+            "Índice de Urgência: %{x:.0f}<br>"
+            "Taxa Internações: %{customdata[0]:.0f}<br>"
+            "Taxa Ambulatório: %{customdata[1]:.0f}<br>"
             "População: %{customdata[2]:,d}<extra></extra>"
         ),
     ))
